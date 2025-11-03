@@ -27,7 +27,10 @@ start() ->
     %% Start the MQTT client.
     %%
     Config = #{
-        url => "mqtt://mqtt.eclipseprojects.io",
+        url => "mqtt://broker.hivemq.com",
+        % username => "some-user", % (optional)
+        % password => "some-password", % (optional)
+        % client_id => "some-client", % (optional - defaults to: atomvm-<DEVICE-MAC-ADDRESS>)
         connected_handler => fun handle_connected/1
     },
     {ok, _MQTT} = mqtt_client:start(Config),

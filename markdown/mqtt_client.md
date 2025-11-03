@@ -63,7 +63,7 @@ The input parameter to the `start/1` function is an Erlang `map` structure, cont
 
     %% erlang
     Config = #{
-        url => "mqtt://mqtt.eclipseprojects.io",
+        url => "mqtt://broker.hivemq.com",
         connected_handler => fun handle_connected/1,
         disconnected_handler => fun handle_disconnected/1,
         error_handler => handle_error/2
@@ -113,7 +113,7 @@ You can publish a message using the `publish/4`
     %% erlang
     Topic = <<"atomvm/topic0">>,
     Message = <<"Hello!">>,
-    MsgId = mqtt_client:publish(MTQQ, Topic, Message).
+    MsgId = mqtt_client:publish(MQTT, Topic, Message).
 
 The above function call will publish a message to the specified topic using the MQTT QoS `at_most_once`.  Note that messages sent with `at_most_once` QoS are not subject to notification.
 
@@ -151,7 +151,7 @@ Subscribe to an MQTT topic by using the `subscribe/3` function.  Specify a topic
         subscribed_handler = fun handle_subscribed/2,
         data_handler = fun handle_data/3
     },
-    ok = mqtt_client:subscribe(MTQQ, Topic, SubscribeOptions).
+    ok = mqtt_client:subscribe(MQTT, Topic, SubscribeOptions).
 
 The `subscribe/3` function will return `{error, already_subscribed}` if the client application is already subscribed to the specified topic.
 
@@ -173,14 +173,14 @@ The `data_handler` will be passed the MQTT client instance, topic on which the m
 
 ### Unsubscribing from an MQTT topic
 
-Use the `unscibscribe/3` function to unsubscribe from a topic.
+Use the `unsubscribe/3` function to unsubscribe from a topic.
 
     %% erlang
     Topic = <<"atomvm/topic0">>,
     UnSubscribeOptions = #{
         unsubscribed_handler = fun handle_unsubscribed/2
     },
-    ok = mqtt_client:unsubscribe(MTQQ, Topic, UnSubscribeOptions).
+    ok = mqtt_client:unsubscribe(MQTT, Topic, UnSubscribeOptions).
 
 The `unsubscribe/3` function will return `{error, not_subscribed}` if the client application is not yet subscribed to the specified topic.
 
@@ -198,6 +198,21 @@ TODO
 #### Host and Port Settings
 
 #### Username/Password authentication
+
+The username and password can be specified either as parameters to `mqtt_client:start/1` in the configuration map or directly in the broker URL (if supported by the broker).
+
+    %% erlang
+    Config = #{
+        url => "mqtts://some-broker.io:8883"
+        username => <<"test">>,
+        password => <<"milkstout">>,
+        ...
+        }
+    % or
+    Config = #{
+        url => "mqtts://test:milkstout@some-broker.io:8883",
+        ...
+        }
 
 #### Connecting via TLS
 

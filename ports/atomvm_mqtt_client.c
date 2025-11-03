@@ -61,6 +61,7 @@ static const char *const unsubscribe_failed_atom =        ATOM_STR("\x12", "unsu
 static const char *const unsubscribed_atom =            ATOM_STR("\xC", "unsubscribed");
 static const char *const url_atom =                     ATOM_STR("\x3", "url");
 static const char *const username_atom =                ATOM_STR("\x8", "username");
+static const char *const client_id_atom =                ATOM_STR("\x9", "client_id");
 
 // error codes
 static const char *const bad_username_atom =            ATOM_STR("\x0C", "bad_username");
@@ -700,12 +701,11 @@ void atomvm_mqtt_client_init(GlobalContext *global)
     esp_log_level_set("MQTT_CLIENT", ESP_LOG_VERBOSE);
 }
 
-// NB. Caller assumes ownership of returned string
-static char *maybe_get_string(term kv, AtomString key, GlobalContext *global)
+static char* maybe_get_string_or_default(term kv, AtomString key, char *default_value, GlobalContext *global)
 {
     term value_term = interop_kv_get_value(kv, key, global);
     if (!term_is_string(value_term) && !term_is_binary(value_term)) {
-        return NULL;
+        return default_value;
     }
 
     int ok;
@@ -715,6 +715,12 @@ static char *maybe_get_string(term kv, AtomString key, GlobalContext *global)
         return NULL;
     }
     return value_str;
+}
+
+// NB. Caller assumes ownership of returned string
+static char *maybe_get_string(term kv, AtomString key, GlobalContext *global)
+{
+   return maybe_get_string_or_default(kv, key, NULL, global);
 }
 
 // NB. Caller assumes ownership of returned string
@@ -785,17 +791,26 @@ Context *atomvm_mqtt_client_create_port(GlobalContext *global, term opts)
     UNUSED(port);
     char *username_str = maybe_get_string(opts, username_atom, global);
     char *password_str = maybe_get_string(opts, password_atom, global);
+    char *client_id_str = maybe_get_string_or_default(opts, client_id_atom, get_default_client_id(), global);
+    // todo: implement cert support
     // char *cert_str = maybe_get_string(opts, cert_atom, global);
 
     // Note that char * values passed into this struct are copied into the MQTT state
-    const char *client_id = get_default_client_id();
     esp_mqtt_client_config_t mqtt_cfg = {
 #if ESP_IDF_VERSION_MAJOR >= 5
         .broker.address.uri = url_str,
-        .credentials.client_id = client_id
+        .credentials = {
+            .username = username_str,
+            .client_id = client_id_str,
+            .authentication = {
+                .password = password_str
+            }
+        },
 #else
         .uri = url_str,
-        .client_id = client_id,
+        .username = username_str,
+        .password = password_str
+        .client_id = client_id_str,
         .user_context = (void *) ctx
 #endif
     };
@@ -805,6 +820,7 @@ Context *atomvm_mqtt_client_create_port(GlobalContext *global, term opts)
     free(host_str);
     free(username_str);
     free(password_str);
+    free(client_id_str);
 
     if (UNLIKELY(IS_NULL_PTR(client))) {
         ESP_LOGE(TAG, "Error: Unable to initialize MQTT client.\n");

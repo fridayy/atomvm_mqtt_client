@@ -92,8 +92,7 @@
     error_handler => fun((mqtt(), error()) -> any()),
     username => binary_or_string(),
     password => binary_or_string(),
-    client_id => binary_or_string(),
-    trusted_cert => binary_or_string()
+    client_id => binary_or_string()
 }.
 
 -type error_type() :: esp_tls | connection_refused | undefined.
@@ -494,7 +493,11 @@ init(Config) ->
     try
         Self = self(),
         Port = erlang:open_port({spawn, "atomvm_mqtt_client"}, [
-            {receiver, Self}, {url, maps:get(url, Config)}
+            {receiver, Self}, 
+            {url, maps:get(url, Config)},
+            {username, maps:get(username, Config)},
+            {password, maps:get(password, Config)},
+            {client_id, maps:get(client_id, Config)}
         ]),
         {ok, #state{
             port = Port,
